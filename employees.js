@@ -14,7 +14,19 @@ fs.readFile('employees.json', (err, data) => {
     }
 })
 
-router.get('/', (req, res) => {
+function checkSearch(req, res, next) {
+    if (req.query.search) {
+        if (/^[a-zA-Z]+$/.test(req.query.search) || /^[\u0400-\u04FF]+$/.test(req.query.search)) {
+            next();
+        } else {
+            res.send('Name can contain only letters');
+        }
+    } else {
+        next();
+    }
+}
+
+router.get('/', checkSearch, (req, res) => {
     let filteredEmployees = employees;
 
     if (req.query.department) {
