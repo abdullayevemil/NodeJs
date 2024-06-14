@@ -15,9 +15,9 @@ fs.readFile('employees.json', (err, data) => {
 })
 
 router.get('/', (req, res) => {
-    const categories = [...new Set(Object.values(employees).flatMap(e => e.department))]
+    const departments = [...new Set(Object.values(employees).flatMap(e => e.department))]
 
-    res.json(categories);
+    res.json(departments);
 });
 
 module.exports = router

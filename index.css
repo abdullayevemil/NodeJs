@@ -1,0 +1,11 @@
+input,
+select,
+li {
+    font-size: 2rem;
+    margin: 2rem;
+}
+
+input,
+li {
+    font-size: 1.2rem;
+}
