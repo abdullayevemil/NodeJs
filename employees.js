@@ -19,6 +19,8 @@ function checkSearch(req, res, next) {
         if (/^[a-zA-Z]+$/.test(req.query.search) || /^[\u0400-\u04FF]+$/.test(req.query.search)) {
             next();
         } else {
+            res.status(400);
+
             res.send('Name can contain only letters');
         }
     } else {
