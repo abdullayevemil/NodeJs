@@ -1,17 +1,25 @@
-const express = require('express');
+const { Transform } = require('stream');
 
-const bodyParser = require('body-parser');
+const fs = require('fs');
 
-const multimediaRoutes = require('./multimedia');
+const transformer = new Transform({
+    transform(chunk, encoding, callback) {
+        const array = JSON.parse(chunk);
 
-app = express();
+        let nullItems = array.filter(element => element.name === null);
 
-app.use(express.static('public'));
+        nullItems.forEach(element => {
+            array.splice(array.indexOf(element), 1);
+        });
 
-app.use(bodyParser.json())
+        this.push(JSON.stringify(array));
 
-app.use(bodyParser.urlencoded({ extended: false }));
+        callback();
+    }
+});
 
-app.use('/multimedia', multimediaRoutes);
+const readable = fs.createReadStream('./data.json');
 
-app.listen(8080);
+const writable = fs.createWriteStream('./filtered_data.json');
+
+readable.pipe(transformer).pipe(writable); 
