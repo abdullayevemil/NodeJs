@@ -1,17 +1,17 @@
 const express = require('express');
 
-const cors = require('cors');
+const bodyParser = require('body-parser');
 
-const employeesRoutes = require('./employees');
+const multimediaRoutes = require('./multimedia');
 
-const cattegoriesRoutes = require('./departments');
+app = express();
 
-const app = express();
+app.use(express.static('public'));
 
-app.use(cors());
+app.use(bodyParser.json())
 
-app.use('/employees', employeesRoutes);
+app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use('/departments', cattegoriesRoutes);
+app.use('/multimedia', multimediaRoutes);
 
-app.listen(8080)
+app.listen(8080);
