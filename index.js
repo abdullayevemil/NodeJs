@@ -1,89 +1,128 @@
-const select = document.querySelector('select');
+const cors = require('cors')
+const express = require('express')
+const fs = require('fs')
+const multer = require('multer');
 
-const errorDiv = document.querySelector('#message');
+const bodyParser = require('body-parser')
+let app = express()
+let HOST = 3000
+app.use(cors())
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended:true}))
 
-const input = document.querySelector('input');
+app.use('/static', express.static('public'));
 
-const ul = document.querySelector('ul');
+const storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        cb(null, 'uploads/') // здесь файлы будут сохраняться в папке 'uploads'
+    },
+    filename: function(req, file, cb) {
+        cb(null, file.originalname) // сохраняет файл с его оригинальным именем
+    }
+});
+const upload = multer({ storage: storage }); 
 
-let option = document.createElement('option');
 
-option.text = 'All';
+app.post('/save-photo', upload.single('files'), (req, res) => {
+    if (req.file) {
+        res.json({info:'Файл загружен'});
+    } else {
+        res.send({info:'Файл загружен'});
+    }
+});
 
-option.value = '';
-
-select.appendChild(option);
-
-fetch('http://localhost:8080/departments', {
-    method: "GET"
-})
-    .then(response => response.json())
-    .then(departments => {
-        departments.forEach(department => {
-            let option = document.createElement('option');
-
-            option.text = department;
-
-            option.value = department;
-
-            select.appendChild(option);
-        });
-    });
-
-fetch('http://localhost:8080/employees', {
-    method: "GET"
-})
-    .then(response => response.json())
-    .then(employees => {
-        employees.forEach(employee => {
-            let li = document.createElement('li');
-
-            li.innerHTML = `
-                <div>Name: ${employee.name}</div>
-                <div>Department: ${employee.department}</div>
-                <div>Position: ${employee.position}</div>
-            `;
-
-            ul.appendChild(li);
-        });
-    });
-
-function getEmployees() {
-    let search = input.value;
-
-    let filter = select.value;
-
-    fetch(`http://localhost:8080/employees/?search=${search}&department=${filter}`, {
-        method: "GET"
-    })
-        .then(response => {
-            if (response.status == 400) {
-                errorDiv.innerText = 'Name can contain only letters!';
-
-                return;
-            }
-
-            errorDiv.innerText = '';
-
-            return response.json()
-        })
-        .then(employees => {
-            ul.innerHTML = "";
-
-            employees.forEach(employee => {
-                let li = document.createElement('li');
+app.post('/create-or-choose-chat', (req, res) => {
+   
+    if(req.body){
+        files = fs.readdirSync('./chatFiles')
+        if (files.includes(req.body.chat + '.json')) {
+            files.forEach((item) => {
+                if (req.body.chat + '.json' === item) {
+                    fs.readFile(`./chatFiles/${item}`, 'utf-8', (err, data) => {
+                        if (err) {
+                            console.log(err)
+                        } else {
+                            let array = JSON.parse(data)
+                            res.json({array:array})
+                        }
+                    })
     
-                li.innerHTML = `
-                    <div>Name: ${employee.name}</div>
-                    <div>Department: ${employee.department}</div>
-                    <div>Position: ${employee.position}</div>
-                `;
-    
-                ul.appendChild(li);
+                }
             })
+    
+        } else {
+            let chatArray = JSON.stringify([])
+            fs.writeFile(`./chatFiles/${req.body.chat}.json`, chatArray, 'utf-8', (err) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    res.json({text:`Chat ${req.body.chat} was created`})
+                }
+            })
+        }
+    }
+    
+})
+
+app.post('/letter-sending', (req,res) => {
+      if(req.body){
+        let letter = req.body
+        fs.readFile(`./chatFiles/${letter.chat}.json`, 'utf-8', (err, data) => {
+            if (err) {
+                console.log(err)
+            } else {
+                let array = JSON.parse(data)
+                if(array.length === 0){
+                    letter.id = 1
+                }else{
+                    letter.id = array.length + 1
+                }
+    
+                array.push(req.body)
+                stringifyedArray = JSON.stringify(array)
+                fs.writeFile(`./chatFiles/${letter.chat}.json`, stringifyedArray, 'utf-8', (err) => {
+                    if (err) {
+                        console.log(err)
+                    } else {
+                        res.json(array)
+                    }
+                })
+            }
+        })
+      }
+      
+})
+
+app.delete('/delete-letter', (req, res) => {
+    if (req.body) {
+        let chat = req.body.chat;
+
+        let messageId = req.body.id;
+
+        fs.readFile(`./chatFiles/${chat}.json`, 'utf-8', (err, data) => {
+            if (err) {
+                console.log(err);
+            } else {
+                let array = JSON.parse(data);
+
+                let index = array.indexOf(array.find(message => message.id == messageId));
+
+                array.splice(index, 1);
+
+                stringifyedArray = JSON.stringify(array);
+
+                fs.writeFile(`./chatFiles/${chat}.json`, stringifyedArray, 'utf-8', (err) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        res.json(array);
+                    }
+                });
+            }
         });
-}
+    }
+});
 
-input.addEventListener('keyup', getEmployees);
-
-select.addEventListener('change', getEmployees);
+app.listen(HOST, () => {
+    console.log(`http://localhost:${HOST}`)
+})
