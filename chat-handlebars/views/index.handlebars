@@ -1,0 +1,22 @@
+<h1>{{title}}</h1>
+
+<ul class="list-group mt-4">
+    {{#each chats}}
+        <a href="/chats/{{this}}">
+            <li>{{this}}</li>
+        </a>
+    {{/each}}
+</ul>
+
+<style>
+    a {
+        text-decoration: none;
+        color: black;
+        margin: 1rem;
+    }
+
+    a:hover {
+        text-decoration: none;
+        color: black;
+    }
+</style>

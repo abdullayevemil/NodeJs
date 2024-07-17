@@ -1,0 +1,138 @@
+<h1>{{title}}</h1>
+
+<ul class="list-group mt-4">
+    {{#each messages}}
+    {{#if (equals this.from 'Ramin')}}
+    <li class="from">{{this.letter}} --- {{this.time}}</li>
+    {{else}}
+    <li class="to">{{this.letter}} --- {{this.time}}</li>
+    {{/if}}
+    {{/each}}
+</ul>
+
+<input id="friend" type="hidden" value="{{this.friend}}">
+
+<input id="me" type="hidden" value="{{this.me}}">
+
+<input id="from" type="hidden" value="{{this.from}}">
+
+<form id="fromMeForm">
+    <input type="text" id="fromMeInput">
+
+    <input type="file" name='files' id="photoInput">
+
+    <button>SEND TO {{this.friend}}</button>
+</form>
+
+<form id="fromFriendForm">
+    <input type="text" id="toFriendInput">
+
+    <input type="file" name='files' id="photoInput">
+
+    <button>SEND TO {{this.me}}</button>
+</form>
+
+<style>
+    .from {
+        align-self: flex-end;
+        background-color: aqua;
+    }
+
+    .to {
+        align-self: flex-start;
+        background-color: green;
+    }
+</style>
+
+<script>
+    function getDate() {
+        let date = new Date()
+        let year = date.getFullYear()
+        let month = date.getMonth() + 1
+        let day = date.getDate()
+        let hour = date.getHours()
+        let minutes = date.getMinutes()
+        let seconds = date.getSeconds()
+        return `${year}/${month}/${day} - ${hour}:${minutes}:${seconds}`
+    }
+
+    let fromMeForm = document.getElementById('fromMeForm');
+
+    let fromFriendForm = document.getElementById('fromFriendForm');
+
+    let messages = document.querySelector('ul');
+
+    let me = document.querySelector('#me').value;
+
+    let from = document.querySelector('#from').value;
+
+    let friend = document.querySelector('#friend').value;
+
+    fromMeForm.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+
+        let fromMeFormInput = document.querySelector('#fromMeForm input').value;
+
+        let fromMeLetter = {
+            letter: fromMeFormInput,
+            from: me,
+            to: friend,
+            time: getDate(),
+            chat: me + "and" + friend
+        };
+
+        fetch('/letter-sending', {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify(fromMeLetter)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    let li = document.createElement('li');
+
+                    li.classList.add(from === me ? 'to' : 'from');
+
+                    li.innerText = fromMeLetter.letter + ' --- ' + fromMeLetter.time;
+
+                    messages.appendChild(li);
+                }
+            })
+    });
+
+    fromFriendForm.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        
+        let fromFriendInput = document.querySelector('#fromFriendForm input').value;
+        
+        let fromFriendLetter = {
+            letter: fromFriendInput,
+            from: friend,
+            to: me,
+            time: getDate(),
+            chat: me + "and" + friend
+        };
+
+        fetch('/letter-sending', {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify(fromFriendLetter)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    let li = document.createElement('li');
+
+                    li.classList.add(from === me ? 'from' : 'to');
+
+                    li.innerText = fromFriendLetter.letter + ' --- ' + fromFriendLetter.time;
+
+                    messages.appendChild(li);
+                }
+            })
+    })
+</script>
