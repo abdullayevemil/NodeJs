@@ -73,40 +73,6 @@ app.post('/save-photo', upload.single('files'), (req, res) => {
     }
 });
 
-app.post('/create-or-choose-chat', (req, res) => {
-
-    if (req.body) {
-        console.log(req.body)
-        files = fs.readdirSync('./chatFiles')
-        console.log(files)
-        if (files.includes(req.body.chat + '.json')) {
-            files.forEach((item) => {
-                if (req.body.chat + '.json' === item) {
-                    console.log(item)
-                    fs.readFile(`./chatFiles/${item}`, 'utf-8', (err, data) => {
-                        if (err) {
-                            console.log(err)
-                        } else {
-                            let array = JSON.parse(data)
-                            res.json({ array: array })
-                        }
-                    })
-                }
-            })
-        } else {
-            let chatArray = JSON.stringify([])
-            fs.writeFile(`./chatFiles/${req.body.chat}.json`, chatArray, 'utf-8', (err) => {
-                if (err) {
-                    console.log(err)
-                } else {
-                    res.json({ text: `Chat ${req.body.chat} was created` })
-                }
-            })
-        }
-    }
-
-})
-
 app.post('/letter-sending', (req, res) => {
     if (req.body) {
         console.log(req.body)
