@@ -29,10 +29,10 @@ app.use(express.static('public'));
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/') // здесь файлы будут сохраняться в папке 'uploads'
+        cb(null, 'uploads/')
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname) // сохраняет файл с его оригинальным именем
+        cb(null, file.originalname)
     }
 });
 
