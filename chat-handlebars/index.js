@@ -4,6 +4,15 @@ const fs = require('fs');
 const multer = require('multer');
 const exphbs = require('express-handlebars');
 const Handlebars = require('handlebars');
+const { Pool } = require('pg');
+
+const pool = new Pool({
+    user: 'emil',
+    host: 'localhost',
+    database: 'postgres',
+    password: 'Secret123!',
+    port: 5432,
+});
 
 Handlebars.registerHelper('equals', function (a, b) {
     return a == b;
@@ -38,30 +47,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-let files = fs.readdirSync('./chatFiles');
+app.get('/', async (req, res) => {
+    const { rows } = await pool.query('SELECT name FROM chats');
 
-let chats = [];
+    let chats = rows.map(row => row.name);
 
-files.forEach(element => {
-    chats.push(element.split('.')[0]);
-});
-
-app.get('/', (req, res) => {
     res.render('index', { title: 'Chats', chats: chats, me: 'Ramin' });
 });
 
-app.get('/chats/:chatName', (req, res) => {
-    fs.readFile(`./chatFiles/${req.params.chatName}.json`, 'utf-8', (err, data) => {
-        if (err) {
-            console.log('error: ', err)
-        } else {
-            let array = JSON.parse(data)
+app.get('/chats/:chatName', async (req, res) => {
+    const { rows } = await pool.query('SELECT * FROM chats WHERE name = $1', [req.params.chatName]);
 
-            let friend = array.find(e => e.to == 'Ramin').from;
+    const chat = rows[0];
 
-            res.render('chat', { title: 'Chats', messages: array, friend: friend, me: 'Ramin' });
-        }
-    })
+    const messages = await pool.query('SELECT * FROM messages WHERE chatid = $1', [chat.id]);
+
+    let friend = req.params.chatName.replace('Raminand', '');
+
+    res.render('chat', { title: 'Chats', messages: messages.rows, friend: friend, me: 'Ramin' });
 });
 
 app.post('/save-photo', upload.single('files'), (req, res) => {
@@ -73,35 +76,26 @@ app.post('/save-photo', upload.single('files'), (req, res) => {
     }
 });
 
-app.post('/letter-sending', (req, res) => {
-    if (req.body) {
-        console.log(req.body)
-        let letter = req.body
-        fs.readFile(`./chatFiles/${letter.chat}.json`, 'utf-8', (err, data) => {
-            if (err) {
-                console.log(err)
-            } else {
-                let array = JSON.parse(data)
-                if (array.length === 0) {
-                    letter.id = 1
-                } else {
-                    letter.id = array.length + 1
-                }
+app.post('/letter-sending', async (req, res) => {
+    if (!req.body) {
+        res.status(400).send('invalid data');
 
-                array.push(req.body)
-                stringifyedArray = JSON.stringify(array)
-                fs.writeFile(`./chatFiles/${letter.chat}.json`, stringifyedArray, 'utf-8', (err) => {
-                    if (err) {
-                        console.log(err)
-                    } else {
-                        res.json(array)
-                    }
-                })
-            }
-        })
+        return;
     }
 
-})
+    const newLetter = req.body;
+
+    const chat = await pool.query('SELECT * FROM chats WHERE name = $1', [newLetter.chat]);
+
+    const chatId = chat.rows[0].id;
+
+    const { rows } = await pool.query(
+        'INSERT INTO messages ("letter", "imageurl", "from", "to", "time", "chatid") VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [newLetter.letter, newLetter.imageurl, newLetter.from, newLetter.to, newLetter.time, chatId]
+    );
+
+    res.json(rows[0]);
+});
 
 app.listen(HOST, () => {
     console.log(`http://localhost:${HOST}`)
